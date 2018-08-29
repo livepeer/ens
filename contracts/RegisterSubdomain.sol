@@ -49,7 +49,7 @@ contract RegisterSubdomain is Ownable {
 
     modifier onlyENSNodeOwner(bytes32 node) {
         address currentOwner = ens.owner(node);
-        require(currentOwner == msg.sender);
+        require(currentOwner == address(this),"Not owner of node");
         _;
     }
 
