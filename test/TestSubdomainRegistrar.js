@@ -1,5 +1,5 @@
 const ENS = artifacts.require('ENSRegistry.sol');
-const RegisterSubdomain = artifacts.require('RegisterSubdomain.sol');
+const SubdomainRegistrar = artifacts.require('SubdomainRegistrar.sol');
 const PublicResolver = artifacts.require('PublicResolver.sol');
 const FIFSRegistrar = artifacts.require('FIFSRegistrar.sol');
 const DefaultReverseResolver = artifacts.require('DefaultReverseResolver.sol');
@@ -8,7 +8,7 @@ const ReverseRegistrar = artifacts.require('ReverseRegistrar.sol');
 const utils = require('./helpers/Utils.js');
 const namehash = require('eth-ens-namehash');
 
-contract('RegisterSubdomain', function (accounts) {
+contract('Subdomain Registrar', function (accounts) {
 
     let node;
     let registrar, ens;
@@ -34,18 +34,18 @@ contract('RegisterSubdomain', function (accounts) {
         assert.equal(await ens.owner(namehash('transcoder.eth')),accounts[1]);    
 
         //Setup Register subdomain contract
-        registerSubdomain = await RegisterSubdomain.new(ens.address,resolver.address,defaultRevResolver.address,namehash('transcoder.eth'),'transcoder.eth');
+        subdomainRegistrar = await SubdomainRegistrar.new(ens.address,resolver.address,defaultRevResolver.address,namehash('transcoder.eth'),'transcoder.eth');
 
         //Transfer ownership of transcoder.eth to our new contract instance
-        await ens.setOwner(namehash('transcoder.eth'),registerSubdomain.address, {from :accounts[1]});
-        assert.equal(await ens.owner(namehash('transcoder.eth')), registerSubdomain.address);
+        await ens.setOwner(namehash('transcoder.eth'), subdomainRegistrar.address, {from :accounts[1]});
+        assert.equal(await ens.owner(namehash('transcoder.eth')), subdomainRegistrar.address);
 
         //Following transctions will be called from the livepeer server
         //Transaction 1: Assign reverse address ownership to the register subdomain contract
-        await reverseRegistrar.claim(registerSubdomain.address, {from: accounts[2]});
+        await reverseRegistrar.claim(subdomainRegistrar.address, {from: accounts[2]});
 
         //Transaction 2 : Create a subdomain/reverse mapping for the account
-        await registerSubdomain.registerSubdomain('testing', {from : accounts[2]});
+        await subdomainRegistrar.registerSubdomain('testing', {from : accounts[2]});
 
         //Test we setup resolvers correctly
         assert.equal(await ens.resolver(namehash('testing.transcoder.eth')),resolver.address);
@@ -59,5 +59,9 @@ contract('RegisterSubdomain', function (accounts) {
         resolvedAddr =await resolver.addr(namehash('testing.transcoder.eth'));
         assert.equal(resolvedAddr,accounts[2]);
 
+        //Transfer the domain to another address
+        assert.equal(await ens.owner(namehash('testing.transcoder.eth')), accounts[2]);
+        await subdomainRegistrar.transferNodeOwnership(web3.sha3('testing'),accounts[3]);
+        assert.equal(await ens.owner(namehash('testing.transcoder.eth')), accounts[3]);
     });
 });
