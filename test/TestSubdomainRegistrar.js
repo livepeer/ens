@@ -7,14 +7,14 @@ const namehash = require('eth-ens-namehash');
 
 contract('Subdomain Registrar', function (accounts) {
 
-    let node;
-    let registrar, ens;
+    let registrar, ens, resolver, subdomainRegistrar;
 
     beforeEach(async () => {
         node = namehash('eth');
         ens = await ENS.new();       
         resolver = await PublicResolver.new(ens.address);  
         registrar = await FIFSRegistrar.new(ens.address, 0);                
+
         await ens.setOwner(0, registrar.address, { from: accounts[0] });
 
         //Initialize data
